@@ -54,11 +54,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      - name: Normalize image name
+        run: echo "IMAGE_REPO=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/devsecops-secure-pipeline" >> "$GITHUB_ENV"
+
       - name: Build Docker image
         run: |
           docker build \
             -t devsecops-secure-pipeline:${{ github.sha }} \
-            -t ghcr.io/${{ github.repository_owner }}/devsecops-secure-pipeline:${{ github.sha }} .
+            -t "$IMAGE_REPO:${GITHUB_SHA}" .
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -89,10 +92,9 @@ jobs:
       - name: Publish scanned image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/devsecops-secure-pipeline:${{ github.sha }}
-          docker tag ghcr.io/${{ github.repository_owner }}/devsecops-secure-pipeline:${{ github.sha }} \
-            ghcr.io/${{ github.repository_owner }}/devsecops-secure-pipeline:latest
-          docker push ghcr.io/${{ github.repository_owner }}/devsecops-secure-pipeline:latest
+          docker push "$IMAGE_REPO:${GITHUB_SHA}"
+          docker tag "$IMAGE_REPO:${GITHUB_SHA}" "$IMAGE_REPO:latest"
+          docker push "$IMAGE_REPO:latest"
 
       - name: Install Cosign
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -102,5 +104,4 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           COSIGN_EXPERIMENTAL: "1"
-          IMAGE_REF: ghcr.io/${{ github.repository_owner }}/devsecops-secure-pipeline:${{ github.sha }}
-        run: cosign sign --yes "$IMAGE_REF"
+        run: cosign sign --yes "$IMAGE_REPO:${GITHUB_SHA}"
