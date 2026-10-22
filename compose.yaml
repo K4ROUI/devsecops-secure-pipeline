@@ -1,0 +1,21 @@
+services:
+  api:
+    build: .
+    image: devsecops-secure-pipeline:local
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_PATH: /app/data/tasks.db
+    volumes:
+      - task-data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+volumes:
+  task-data:
